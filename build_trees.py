@@ -55,7 +55,7 @@ if __name__ == '__main__':
         portfolio.iloc[ret_mask, :] = portfolio.iloc[ret_mask, :].sub(
             rf_factor_df[Columns.returns_col].tolist(), axis=0)
 
-        # Remove the trees that aare solely based on the single characteristics
+        # Remove the trees that are solely based on the single characteristics
         # (all combinations in max port are the same)
         mask_one = (
                 portfolio.columns.get_level_values(Columns.port_col) ==
