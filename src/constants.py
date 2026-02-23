@@ -3,7 +3,7 @@ from typing import Tuple, List, Union
 from pathlib import Path
 import numpy as np
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import combinations
 
 
@@ -12,8 +12,8 @@ class Parameters:
     tree_depth: int = 4
     n_splits: int = 3
     n_chars: int = 2
-    mean_shrinkage: np.arange = np.arange(0, 0.95, 0.05)
-    ridge_lambda: np.arange = 0.1 ** np.arange(5, 8.25, 0.25)
+    mean_shrinkage: np.ndarray = field(default_factory=lambda: np.arange(0, 0.95, 0.05))
+    ridge_lambda: np.ndarray = field(default_factory=lambda: 0.1 ** np.arange(5, 8.25, 0.25))
     cv_splits: int = 3
     k_min: int = 5
     k_max: int = 50

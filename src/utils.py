@@ -52,7 +52,15 @@ def unstack_df(input_df: pd.DataFrame, name: str) -> pd.DataFrame:
 
 
 def process_date_column(input_df: pd.DataFrame, col_name: str = 'date') -> pd.DataFrame:
-    input_df.loc[:, col_name] = pd.to_datetime(input_df[col_name], format='%Y%m%d')
+    # input_df.loc[:, col_name] = pd.to_datetime(input_df[col_name].astype(str), format='%Y%m%d')
+    # store original column order
+    original_cols = list(input_df.columns)
+
+    # convert date column safely
+    col_idx = original_cols.index(col_name)
+    dates = pd.to_datetime(input_df[col_name].astype(str), format='%Y%m%d')
+    input_df.drop(columns=[col_name], inplace=True)
+    input_df.insert(col_idx, col_name, dates)
     return input_df
 
 
@@ -63,11 +71,50 @@ def get_custom_ranks(input_series: pd.Series) -> pd.Series:
 def recursive_tree_grows(input_df: pd.DataFrame, n_split: int, col_idx: int = 0):
     if col_idx >= input_df.shape[1]:
         return input_df
+    
     node_col = input_df.columns[col_idx]
     input_df.loc[:, node_col] = pd.qcut(get_custom_ranks(input_df.loc[:, node_col]), n_split, labels=False)
     col_idx += 1
-    input_df = input_df.groupby(node_col).apply(lambda df: recursive_tree_grows(df, n_split, col_idx))
-    return input_df
+    # input_df = (input_df.groupby(node_col, group_keys=False).apply(lambda df: recursive_tree_grows(df, n_split, col_idx), include_groups=False))
+    # return input_df
+    # Recursively apply to each group
+    grouped_dfs = []
+    for _, group in input_df.groupby(node_col, group_keys=False):
+        grouped_dfs.append(recursive_tree_grows(group, n_split, col_idx))
+    # Concatenate all groups back together
+    return pd.concat(grouped_dfs, axis=0)
+
+
+# non recursive version
+def tree_grows(input_df: pd.DataFrame, n_split: int):
+    df = input_df.copy()
+    original_cols = list(df.columns)
+
+    for col_idx, node_col in enumerate(original_cols):
+
+        if col_idx == 0:
+            df[node_col] = pd.qcut(
+                get_custom_ranks(df[node_col]),
+                n_split,
+                labels=False
+            )
+        else:
+            # split with previous column
+            prev_col = original_cols[:col_idx]
+
+            df[node_col] = (
+                df
+                .groupby(prev_col)[node_col]
+                .transform(
+                    lambda x: pd.qcut(
+                        get_custom_ranks(x),
+                        n_split,
+                        labels=False
+                    )
+                )
+            )
+
+    return df
 
 
 def add_portfolio_cols(input_df: pd.DataFrame, feature_sequence: List[str], tree_splits_features: List[str], n_split: int = 2):
@@ -75,7 +122,8 @@ def add_portfolio_cols(input_df: pd.DataFrame, feature_sequence: List[str], tree
     tree_df.columns = [f"{Columns.node_col}{Columns.col_sep}{i}" for i in range(len(tree_splits_features))]
     # tree_df.loc[:, f"{Columns.node_col}{Columns.col_sep}0"] = 0
     # print(tree_splits_features)
-    tree_df = recursive_tree_grows(tree_df, n_split=n_split)
+    # tree_df = recursive_tree_grows(tree_df, n_split=n_split)
+    tree_df = tree_grows(tree_df, n_split=n_split)
     input_df = input_df.join(tree_df)
     feat_agg_func = {f: ['min', 'max'] for f in set(feature_sequence)}
     features_dict = dict()
@@ -89,7 +137,7 @@ def add_portfolio_cols(input_df: pd.DataFrame, feature_sequence: List[str], tree
         min_max_feature_df = input_df.groupby(port_col).agg(feat_agg_func)
         min_max_feature_df.columns = list(map(Columns.col_sep.join, min_max_feature_df.columns.values))
         features_dict[port_col] = pd.concat([
-            input_df.groupby(port_col).apply(lambda sub_df: get_ret_val(sub_df)).to_frame(Columns.w_returns_col),
+            input_df.groupby(port_col, group_keys=False).apply(lambda sub_df: get_ret_val(sub_df), include_groups=False).to_frame(Columns.w_returns_col),
             min_max_feature_df], axis=1)
     features_df = pd.concat(features_dict, axis=0)
     features_df.columns.name = Columns.features_col
@@ -109,8 +157,8 @@ def tree_portfolio(comb_df: pd.DataFrame, feature_sequence: List[str], n_split: 
     for char_product in tqdm(product(feature_sequence, repeat=tree_depth)):
         # Create grouping by months
         all_trees_portfolio_dict[Columns.col_sep.join(char_product)] = comb_df.groupby(
-            pd.Grouper(key=Columns.date_col, freq='m')).apply(
-            lambda x: add_portfolio_cols(x, feature_sequence, list(char_product), n_split))
+            pd.Grouper(key=Columns.date_col, freq='ME')).apply(
+            lambda x: add_portfolio_cols(x, feature_sequence, list(char_product), n_split), include_groups=False)
 
     # Here groupind date/month/port/node and each feature value
     # In R, for each feature there is a separate matrix with months as Rows, and (port + node) as columns
