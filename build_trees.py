@@ -1,3 +1,4 @@
+# %%
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -12,21 +13,25 @@ if __name__ == '__main__':
     paths = DataPaths()
 
     logging.info(f"Loading base characteristics")
+    print(f"Loading base characteristics")
     raw_lme_df = read_rename_df(paths.input_data / f"{chars.lme}.csv")
     ret_df = unstack_df(read_rename_df(paths.input_data / f"{paths.returns_file_name}.csv"), paths.returns_file_name)
     rf_factor_df = pd.read_csv(paths.input_data / f"{paths.rf_factor_file_name}.csv", names=[Columns.returns_col])
     rf_factor_df[Columns.returns_col] = rf_factor_df[Columns.returns_col].apply(lambda x: x / 100)
 
     logging.info(f"Transform base Size feature into quantiles")
+    print(f"Transform base Size feature into quantiles")
     quantile_lme_df = rows_to_quantiles(raw_lme_df.copy())
 
     logging.info(f"Stack raw Size and Returns variables together")
+    print(f"Stack raw Size and Returns variables together")
     merged_df = pd.concat([
         unstack_df(raw_lme_df, Columns.size_col),
         unstack_df(quantile_lme_df, chars.lme),
         ret_df], axis=1)
 
     logging.info(f"Start building the AP trees given the combinations of features")
+    print(f"Start building the AP trees given the combinations of features")
     for char_comb in tqdm(chars.combinations_of_chars(k=Parameters.n_chars, exclude_chars=[chars.lme, chars.returns])):
         feature_sequence = [chars.lme] + list(char_comb)
         output_file_name = f"{paths.sep}".join(feature_sequence)
@@ -65,3 +70,5 @@ if __name__ == '__main__':
         mask = np.logical_and(mask_one, mask_two)
         portfolio = portfolio.iloc[:, ~mask]
         portfolio.to_pickle(paths.processed_data / f"{output_file_name}.pkl")
+
+# %%
