@@ -1,11 +1,11 @@
 import pandas as pd
-from tqdm import tqdm
 import pickle
 import logging
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV, train_test_split
-
 from src.constants import Chars, DataPaths, Parameters, Columns
 from src.model import TreeElastic
+from tqdm import tqdm
+
 
 
 if __name__ == '__main__':
@@ -31,7 +31,7 @@ if __name__ == '__main__':
         }
         tscv = TimeSeriesSplit(n_splits=Parameters.n_splits)
         tree_model = TreeElastic(k_min=Parameters.k_min, k_max=Parameters.k_max)
-        cv_search = GridSearchCV(estimator=tree_model, param_grid=param_grid, verbose=3, cv=tscv)
+        cv_search = GridSearchCV(estimator=tree_model, param_grid=param_grid, verbose=3, cv=tscv, n_jobs=-1)
         cv_search.fit(train_val_portfolios)
 
         logging.info('Train overall model with tuned parameters')
@@ -45,12 +45,10 @@ if __name__ == '__main__':
         with open(paths.model_dumps / model_output_name, 'wb') as f:
             pickle.dump(overall_model, f)
 
-
-
-        train_val_portolios, test_portfolios = train_test_split(
-            tree_portolio, test_size=Parameters.test_size, shuffle=False)
-        cv_tree_model = GridSearchCV(estimator=tree_model, param_grid=param_grid, verbose=1, cv=tscv)
-        cv_tree_model.fit(train_val_portolios)
-        model_output_name = f"{tree_portolio.with_suffix('').name}{paths.sep}{paths.model_suffix}"
-        with open(paths.processed_data / model_output_name, 'wb') as f:
-            pickle.dump(cv_tree_model, f)
+        # train_val_portolios, test_portfolios = train_test_split(
+        #     tree_portfolio, test_size=Parameters.test_size, shuffle=False)
+        # cv_tree_model = GridSearchCV(estimator=tree_model, param_grid=param_grid, verbose=3, cv=tscv, n_jobs=-1)
+        # cv_tree_model.fit(train_val_portolios)
+        # model_output_name = f"{tree_file_path.with_suffix('').name}{paths.sep}{paths.model_suffix}"
+        # with open(paths.model_dumps / model_output_name, 'wb') as f:
+        #     pickle.dump(cv_tree_model, f)

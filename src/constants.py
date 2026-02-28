@@ -1,31 +1,30 @@
-from typing import Tuple, List, Union
-
+from typing import List, Union, ClassVar
 from pathlib import Path
-import numpy as np
-
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import combinations
+from collections.abc import Iterator
 
+import numpy as np
 
 @dataclass(frozen=True)
 class Parameters:
     tree_depth: int = 4
     n_splits: int = 3
-    n_chars: int = 2
-    mean_shrinkage: np.ndarray = field(default_factory=lambda: np.arange(0, 0.95, 0.05))
-    ridge_lambda: np.ndarray = field(default_factory=lambda: 0.1 ** np.arange(5, 8.25, 0.25))
+    n_chars: int = 3
+    mean_shrinkage: ClassVar[np.ndarray] = np.arange(0, 0.9, 0.1)
+    ridge_lambda: ClassVar[np.ndarray] = 0.1 ** np.arange(2, 8, 0.5)
     cv_splits: int = 3
     k_min: int = 5
     k_max: int = 50
-    test_size: int = 276
+    test_size: int = 120
 
 
 @dataclass(frozen=True)
 class Columns:
     date_col: str = 'date'
-    size_col: str = 'size'
+    size_col: str = 'mkt_cap'
     permno_col: str = 'permno'
-    returns_col: str = 'ret'
+    returns_col: str = 'gross_returns'
     w_returns_col: str = 'weighted_ret'
     col_sep: str = '_'
     node_col: str = 'node'
@@ -61,23 +60,46 @@ class Years:
 
 @dataclass(frozen=True, init=True)
 class Chars:
-    ac: str = 'ac'
-    beme: str = 'beme'
-    idiovol: str = 'idiovol'
-    lme: str = 'lme'
-    r12_2: str = 'r12_2'
-    op: str = 'op'
-    investment: str = 'investment'
-    st_rev: str = 'st_rev'
-    lt_rev: str = 'lt_rev'
-    lrunover: str = 'lturnover'
+    # ac: str = 'ac'
+    # beme: str = 'beme'
+    # idiovol: str = 'idiovol'
+    # lme: str = 'lme'
+    # r12_2: str = 'r12_2'
+    # op: str = 'op'
+    # investment: str = 'investment'
+    # st_rev: str = 'st_rev'
+    # lt_rev: str = 'lt_rev'
+    # lrunover: str = 'lturnover'
+
+    # val: str = 'val'
+    # qual: str = 'qual'
+    # trd: str = 'trd'
+    # sen: str = 'sen'
+    # fcf: str = 'fcf_rank'
+    # lme: str = 'lme'
+    
+    capital_structure: str = "cap_structure"
+    growth: str = "growth"
+    profitability: str = "profitability"
+    accrual: str = "accrual"
+    investment: str = "investment"
+    dividend_yield: str = "dy_rank"
+    book_yield: str = "by_rank"
+    forward_earnings_yield: str = "fy1_ey_rank"
+    ebidta_to_ev: str = "ee_no_fin_rank"
+    free_cash_flow: str = "fcf_rank"
+    stock_sentiment: str = "senstock"
+    industry_sentiment: str = "senind"
+    stock_trend: str = "trdstock"
+    industry_trend: str = "trdind"
+    lme: str = "lme"
     returns: str = 'ret'
 
     @property
     def base_char(self):
         return self.lme
 
-    def combinations_with_size(self, k: int = 2) -> Tuple[str, str, str]:
+    def combinations_with_size(self, k: int = 2) -> Iterator[tuple[str, str, str]]:
         """
         Provides generator of combinations with size characteristic (LME) with length k.
 
@@ -90,10 +112,11 @@ class Chars:
             Generator of combinations
         """
         for comb in combinations([k for k, v in self.__dict__.items() if v != self.lme and v != self.returns], k):
-            yield self.lme, comb[0], comb[1]
+            # yield self.lme, comb[0], comb[1]
+            yield comb
 
     def combinations_of_chars(self, k: int = 2, exclude_chars: Union[List[str], str] = None,
-                              include_chars: Union[List[str], str] = None) -> Tuple[str, str, str]:
+                              include_chars: Union[List[str], str] = None) -> Iterator[tuple[str, str, str]]:
         """
         Provides generator of combinations of characteristics.
 
@@ -132,6 +155,6 @@ class DataPaths:
     processed_data: Path = Path('processed_data')
     model_suffix: str = 'model.pkl'
 
-    def merge_tuple(self, input_tuple: Tuple[str, str]) -> str:
+    def merge_tuple(self, input_tuple: tuple[str, str]) -> str:
         return self.sep.join(input_tuple)
 
