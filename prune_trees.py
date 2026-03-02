@@ -48,9 +48,9 @@ if __name__ == '__main__':
 
 
         train_val_portolios, test_portfolios = train_test_split(
-            tree_portolio, test_size=Parameters.test_size, shuffle=False)
+            tree_portfolio, test_size=Parameters.test_size, shuffle=False)
         cv_tree_model = GridSearchCV(estimator=tree_model, param_grid=param_grid, verbose=1, cv=tscv)
         cv_tree_model.fit(train_val_portolios)
-        model_output_name = f"{tree_portolio.with_suffix('').name}{paths.sep}{paths.model_suffix}"
+        model_output_name = f"{tree_file_path.with_suffix('').name}{paths.sep}{paths.model_suffix}"
         with open(paths.processed_data / model_output_name, 'wb') as f:
             pickle.dump(cv_tree_model, f)

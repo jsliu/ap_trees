@@ -1,10 +1,11 @@
-from typing import Tuple, List, Union
+from typing import List, Union
 
 from pathlib import Path
 import numpy as np
 
 from dataclasses import dataclass, field
 from itertools import combinations
+from collections.abc import Iterator
 
 
 @dataclass(frozen=True)
@@ -77,7 +78,7 @@ class Chars:
     def base_char(self):
         return self.lme
 
-    def combinations_with_size(self, k: int = 2) -> Tuple[str, str, str]:
+    def combinations_with_size(self, k: int = 2) -> Iterator[tuple[str, str, str]]:
         """
         Provides generator of combinations with size characteristic (LME) with length k.
 
@@ -93,7 +94,7 @@ class Chars:
             yield self.lme, comb[0], comb[1]
 
     def combinations_of_chars(self, k: int = 2, exclude_chars: Union[List[str], str] = None,
-                              include_chars: Union[List[str], str] = None) -> Tuple[str, str, str]:
+                              include_chars: Union[List[str], str] = None) -> Iterator[tuple[str, str, str]]:
         """
         Provides generator of combinations of characteristics.
 
@@ -132,6 +133,6 @@ class DataPaths:
     processed_data: Path = Path('processed_data')
     model_suffix: str = 'model.pkl'
 
-    def merge_tuple(self, input_tuple: Tuple[str, str]) -> str:
+    def merge_tuple(self, input_tuple: tuple[str, str]) -> str:
         return self.sep.join(input_tuple)
 
