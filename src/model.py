@@ -1,12 +1,10 @@
-from typing import Tuple
-
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LassoLars
 from sklearn.base import BaseEstimator
 from scipy.linalg import eigh
 
-from src.constants import Columns
+from .constants import Columns
 
 
 MIN_EIG_VALUE = 1e-10
@@ -18,14 +16,14 @@ class TreeElastic(BaseEstimator):
                  k_min: int = 0, k_max: float = np.inf):
         self.mean_shrinkage = mean_shrinkage
         self.ridge_lambda = ridge_lambda
-        self.base_model = LassoLars(alpha=1e-20, normalize=False, fit_intercept=False)
+        self.base_model = LassoLars(alpha=1e-20, fit_intercept=True)
         self.k_min = k_min
         self.k_max = k_max
         self.feature_weights = None
         self.betas = None
 
     @staticmethod
-    def decompose_covariance(feature_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+    def decompose_covariance(feature_df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         """
         Decomposes input feature df into Eigen-values/vectors. Because the decomposition could return complex numbers,
         take only the real part of them.
@@ -46,13 +44,13 @@ class TreeElastic(BaseEstimator):
         gamma = min(feature_df.shape[0], sum(eig_values > MIN_EIG_VALUE))
         return eig_values[:gamma], eig_vectors[:, :gamma]
 
-    def process_input(self, feature_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
-        eig_values, eig_vectors = self.decompose_covariance(feature_df)
+    def process_input(self, feature_df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+        eig_values, eig_vectors = self.decompose_covariance(feature_df.fillna(0))
         sigma_tilde = eig_vectors @ np.diag(np.sqrt(eig_values)) @ eig_vectors.T
 
         mu_tilde = eig_vectors @  np.diag(1 / np.sqrt(eig_values)) @ eig_vectors.T
         mu_tilde = mu_tilde @ (
-                feature_df.mean() + self.mean_shrinkage * feature_df.values.mean()
+                feature_df.mean() + self.mean_shrinkage * np.nanmean(feature_df.values)
         ).values
 
         n_feats = sigma_tilde.shape[0]

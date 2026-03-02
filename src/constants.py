@@ -1,30 +1,28 @@
-from typing import List, Union
-
+from typing import List, Union, ClassVar
 from pathlib import Path
-import numpy as np
-
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import combinations
 from collections.abc import Iterator
 
+import numpy as np
 
 @dataclass(frozen=True)
 class Parameters:
     tree_depth: int = 4
     n_splits: int = 3
-    n_chars: int = 2
-    mean_shrinkage: np.ndarray = field(default_factory=lambda: np.arange(0, 0.95, 0.05))
-    ridge_lambda: np.ndarray = field(default_factory=lambda: 0.1 ** np.arange(5, 8.25, 0.25))
+    n_chars: int = 3
+    mean_shrinkage: ClassVar[np.ndarray] = np.arange(0, 0.9, 0.1)
+    ridge_lambda: ClassVar[np.ndarray] = 0.1 ** np.arange(2, 8, 0.5)
     cv_splits: int = 3
     k_min: int = 5
     k_max: int = 50
-    test_size: int = 276
+    test_size: int = 120
 
 
 @dataclass(frozen=True)
 class Columns:
     date_col: str = 'date'
-    size_col: str = 'size'
+    size_col: str = 'mkt_cap'
     permno_col: str = 'permno'
     returns_col: str = 'ret'
     w_returns_col: str = 'weighted_ret'
@@ -91,7 +89,8 @@ class Chars:
             Generator of combinations
         """
         for comb in combinations([k for k, v in self.__dict__.items() if v != self.lme and v != self.returns], k):
-            yield self.lme, comb[0], comb[1]
+            # yield self.lme, comb[0], comb[1]
+            yield comb
 
     def combinations_of_chars(self, k: int = 2, exclude_chars: Union[List[str], str] = None,
                               include_chars: Union[List[str], str] = None) -> Iterator[tuple[str, str, str]]:

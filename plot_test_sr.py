@@ -29,13 +29,24 @@ def main(args: argparse.Namespace):
 
     sdf = ap_tree_model.predict(test_portfolios)
     sharpe_values = np.mean(sdf, axis=0) / (np.std(sdf, axis=0) + 1e-20)
+    k_nonzero = np.sum(ap_tree_model.betas != 0, axis=1)
 
-    sns.lineplot(np.sum(ap_tree_model.betas != 0, 1), sharpe_values)
+    df_plot = pd.DataFrame({
+        "k_nonzero": k_nonzero,
+        "Sharpe": sharpe_values
+    })
+    sns.lineplot(data=df_plot, x="k_nonzero", y="Sharpe", markers="o")    
+    plt.xlabel("Number of non-zero betas (k)")
+    plt.ylabel("Test Sharpe")
+    plt.title(f"Test Sharpe vs Sparsity: {args.feature_combination}")
+    plt.tight_layout()
     plt.show()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Plotting test SR')
-    parser.add_argument('--feature_combination', default='lme_op_investment')
+    parser.add_argument('--feature_combination', default='qual_trd_lme')
     arguments = parser.parse_args()
     main(arguments)
+
+# %%

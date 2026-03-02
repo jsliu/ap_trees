@@ -1,19 +1,22 @@
 # %%
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 import logging
+from tqdm import tqdm
 
-from src.utils import tree_portfolio, read_rename_df, rows_to_quantiles, unstack_df
+from src.utils import build_tree_portfolio, read_rename_df, rows_to_quantiles, unstack_df
+from src.tree_portfolio import build_tree_portfolio_best_split
 from src.constants import Columns, Chars, DataPaths, Parameters
+
 
 
 if __name__ == '__main__':
     chars = Chars()
     paths = DataPaths()
 
+    reg = 'US'
     logging.info(f"Loading base characteristics")
-    print(f"Loading base characteristics")
+    print(f"Loading base characteristics in {reg}")
     raw_lme_df = read_rename_df(paths.input_data / f"{chars.lme}.csv")
     ret_df = unstack_df(read_rename_df(paths.input_data / f"{paths.returns_file_name}.csv"), paths.returns_file_name)
     rf_factor_df = pd.read_csv(paths.input_data / f"{paths.rf_factor_file_name}.csv", names=[Columns.returns_col])
@@ -45,22 +48,32 @@ if __name__ == '__main__':
         comb_df.reset_index(inplace=True)
 
         # In the original implementation, the year start from 1964, thus excluding 1963 from the dataset
-        comb_df[Columns.date_col] = pd.to_datetime(comb_df[Columns.date_col])
+        comb_df[Columns.date_col] = pd.to_datetime(comb_df[Columns.date_col], format="%Y%m%d")
         comb_df = comb_df[comb_df[Columns.date_col].apply(lambda x: x.year != 1963)]
 
         # Start building the tree portfolios
-        portfolio = tree_portfolio(comb_df, feature_sequence,
-                                   n_split=Parameters.n_splits, tree_depth=Parameters.tree_depth)
-        portfolio = pd.concat(portfolio, axis=1).T.drop_duplicates().T
-        portfolio.index.names = [Columns.date_col, Columns.features_col]
-        portfolio.columns.names = [Columns.comb_col, Columns.port_col, Columns.node_col]
+        portfolio = build_tree_portfolio(comb_df, feature_sequence, n_split=Parameters.n_splits, tree_depth=Parameters.tree_depth)
+        # portfolio = build_tree_portfolio_best_split(comb_df=comb_df,
+        #                                            feature_pool=feature_sequence,
+        #                                            report_features=feature_sequence,
+        #                                            n_split=Parameters.n_splits, 
+        #                                            tree_depth=Parameters.tree_depth,
+        #                                            date_col=Columns.date_col,
+        #                                            ret_col=Columns.returns_col,
+        #                                            w_col=Columns.size_col,
+        #                                            mean_shrink=0.05,
+        #                                            ridge=1e-4,
+        #                                            allow_feature_reuse=True,
+        #                                            min_leaf_obs=50,
+        #                                            min_T=24,
+        # )
 
         # Get returns excess variable
         ret_mask = portfolio.index.get_level_values(Columns.features_col) == Columns.w_returns_col
         portfolio.iloc[ret_mask, :] = portfolio.iloc[ret_mask, :].sub(
-            rf_factor_df[Columns.returns_col].tolist(), axis=0)
+            rf_factor_df[portfolio.iloc[ret_mask, :].index.get_level_values(Columns.date_col)].tolist(), axis=0)
 
-        # Remove the trees that aare solely based on the single characteristics
+        # Remove the trees that are solely based on the single characteristics
         # (all combinations in max port are the same)
         mask_one = (
                 portfolio.columns.get_level_values(Columns.port_col) ==
