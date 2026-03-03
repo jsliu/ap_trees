@@ -16,7 +16,7 @@ class TreeElastic(BaseEstimator):
                  k_min: int = 0, k_max: float = np.inf):
         self.mean_shrinkage = mean_shrinkage
         self.ridge_lambda = ridge_lambda
-        self.base_model = LassoLars(alpha=1e-20, fit_intercept=True)
+        self.base_model = LassoLars(alpha=1e-20, fit_intercept=False)
         self.k_min = k_min
         self.k_max = k_max
         self.feature_weights = None

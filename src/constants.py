@@ -10,9 +10,9 @@ import numpy as np
 class Parameters:
     tree_depth: int = 4
     n_splits: int = 3
-    n_chars: int = 3
-    mean_shrinkage: ClassVar[np.ndarray] = np.arange(0, 0.9, 0.1)
-    ridge_lambda: ClassVar[np.ndarray] = 0.1 ** np.arange(2, 8, 0.5)
+    n_chars: int = 2
+    mean_shrinkage: ClassVar[np.ndarray] = np.arange(0.6, 0.9, 0.1)
+    ridge_lambda: ClassVar[np.ndarray] = 0.1 ** np.arange(6, 8, 0.5)
     cv_splits: int = 3
     k_min: int = 5
     k_max: int = 50

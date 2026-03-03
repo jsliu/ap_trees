@@ -14,9 +14,8 @@ if __name__ == '__main__':
     chars = Chars()
     paths = DataPaths()
 
-    reg = 'US'
     logging.info(f"Loading base characteristics")
-    print(f"Loading base characteristics in {reg}")
+    print(f"Loading base characteristics")
     raw_lme_df = read_rename_df(paths.input_data / f"{chars.lme}.csv")
     ret_df = unstack_df(read_rename_df(paths.input_data / f"{paths.returns_file_name}.csv"), paths.returns_file_name)
     rf_factor_df = pd.read_csv(paths.input_data / f"{paths.rf_factor_file_name}.csv", names=[Columns.returns_col])
@@ -71,7 +70,7 @@ if __name__ == '__main__':
         # Get returns excess variable
         ret_mask = portfolio.index.get_level_values(Columns.features_col) == Columns.w_returns_col
         portfolio.iloc[ret_mask, :] = portfolio.iloc[ret_mask, :].sub(
-            rf_factor_df[portfolio.iloc[ret_mask, :].index.get_level_values(Columns.date_col)].tolist(), axis=0)
+            rf_factor_df[Columns.returns_col].tolist(), axis=0)
 
         # Remove the trees that are solely based on the single characteristics
         # (all combinations in max port are the same)

@@ -165,10 +165,10 @@ def tree_portfolio(comb_df: mpd.DataFrame, feature_sequence: List[str], n_split:
     all_trees_portfolio_dict = dict()
     for char_product in tqdm(product(feature_sequence, repeat=tree_depth)):
         # Create grouping by months
-        all_trees_portfolio_dict[Columns.col_sep.join(char_product)] = comb_df.groupby(
+        one_tree = comb_df.groupby(
             pd.Grouper(key=Columns.date_col, freq='ME')).apply(
             lambda x: add_portfolio_cols(x, feature_sequence, list(char_product), n_split), include_groups=False)
-
+        all_trees_portfolio_dict[Columns.col_sep.join(char_product)] = one_tree._to_pandas()
     # Here groupind date/month/port/node and each feature value
     # In R, for each feature there is a separate matrix with months as Rows, and (port + node) as columns
     # in the same order as in our data
