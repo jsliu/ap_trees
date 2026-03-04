@@ -37,11 +37,31 @@ class TreeElastic(BaseEstimator):
         -------
             Tuple of Eigen Values and Eigen Vectors
         """
-        sigma = feature_df.cov()
-        eig_values, eig_vectors = eigh(sigma)
-        eig_values = eig_values[::-1]
-        eig_vectors = np.flip(eig_vectors, axis=1)
-        gamma = min(feature_df.shape[0], sum(eig_values > MIN_EIG_VALUE))
+        # sigma = feature_df.cov()
+        # eig_values, eig_vectors = eigh(sigma)
+        # eig_values = eig_values[::-1]
+        # eig_vectors = np.flip(eig_vectors, axis=1)
+        # gamma = min(feature_df.shape[0], sum(eig_values > MIN_EIG_VALUE))
+        # return eig_values[:gamma], eig_vectors[:, :gamma]
+
+            # Convert to numpy and center data
+        X = feature_df.to_numpy()
+        X = X - X.mean(axis=0, keepdims=True)
+
+        n_samples = X.shape[0]
+
+        # SVD decomposition
+        U, S, Vt = np.linalg.svd(X, full_matrices=False)
+
+        # Eigenvalues of covariance matrix
+        eig_values = (S ** 2) / (n_samples - 1)
+
+        # Eigenvectors of covariance matrix
+        eig_vectors = Vt.T
+
+        # Already sorted in descending order by SVD
+        gamma = min(n_samples, np.sum(eig_values > MIN_EIG_VALUE))
+
         return eig_values[:gamma], eig_vectors[:, :gamma]
 
     def process_input(self, feature_df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
